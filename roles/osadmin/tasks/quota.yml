@@ -1,0 +1,29 @@
+---
+- name: Quota -- Update quotas
+  os_quota:
+    cloud: '{{ item.cloud }}'
+    name: "{{ item.name }}"
+    backup_gigabytes: "{{ item.backup_gigabytes|default(1000) }}"
+    backups: "{{ item.backups|default(10) }}"
+    cores: "{{ item.cores|default(20) }}"
+    fixed_ips: "{{ item.fixed_ips|default(-1) }}"
+    floating_ips: "{{ item.floating_ips|default(10) }}"
+    gigabytes: "{{ item.gigabytes|default(1000) }}"
+    injected_file_size: "{{ item.injected_file_size|default(10240) }}"
+    injected_files: "{{ item.injected_files }}"
+    injected_path_size: "{{ item.injected_path_size|default(255 }}"
+    instances: "{{ item.instances|default(10) }}"
+    port: "{{ item.port|default(50) }}"
+    key_pairs: "{{ item.key_pairs|default(100) }}"
+    per_volume_gigabytes: "{{ item.per_volume_gigabytes|default(1000) }}"
+    properties: "{{ item.properties }}"
+    ram: "{{ item.ram|default(51200) }}"
+    security_group_rule: "{{ item.security_group_rule|default(100) }}"
+    security_group: "{{ item.security_group|default(20) }}"
+    server_group_members: "{{ item.server_group_members }}"
+    server_groups: "{{ item.server_groups }}"
+    snapshots: "{{ item.snapshots|default(20) }}"
+    volumes: "{{ item.volumes|default(20) }}"
+    state: present
+  with_items:
+    - "{{ osadmin_quotas }}"

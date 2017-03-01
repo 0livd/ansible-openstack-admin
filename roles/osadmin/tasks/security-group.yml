@@ -1,0 +1,35 @@
+---
+- name: Security-groups -- Create security groups
+  os_security_group:
+    cloud: '{{ item.cloud|default(omit) }}'
+    auth:
+      username: '{{ osadmin_username|default(omit) }}'
+      password: '{{ osadmin_password|default(omit) }}'
+      project_name: '{{ osadmin_project_name|default(omit) }}'
+      auth_url: '{{ osadmin_auth_url|default(omit) }}'
+      user_domain_id: '{{ osadmin_user_domain_id|default(omit) }}'
+      project_domain_id: '{{ osadmin_project_domain_id|default(omit) }}'
+    state: "{{ item.state|default(omit) }}"
+    name: "{{ item.name }}"
+    description: "{{ item.description|default(omit) }}"
+  with_items: '{{ osadmin_security_groups }}'
+
+- name: Security-groups -- Add rules
+  os_security_group_rule:
+    cloud: '{{ item.0.cloud|default(omit) }}'
+    auth:
+      username: '{{ osadmin_username|default(omit) }}'
+      password: '{{ osadmin_password|default(omit) }}'
+      project_name: '{{ osadmin_project_name|default(omit) }}'
+      auth_url: '{{ osadmin_auth_url|default(omit) }}'
+      user_domain_id: '{{ osadmin_user_domain_id|default(omit) }}'
+      project_domain_id: '{{ osadmin_project_domain_id|default(omit) }}'
+    state: '{{ item.1.state|default(omit) }}'
+    security_group: '{{ item.0.name }}'
+    protocol: '{{ item.1.protocol }}'
+    port_range_min: '{{ item.1.port_range_min }}'
+    port_range_max: '{{ item.1.port_range_max }}'
+    remote_ip_prefix: '{{ item.1.remote_ip_prefix }}'
+  with_subelements:
+    - '{{ osadmin_security_groups }}'
+    - rules

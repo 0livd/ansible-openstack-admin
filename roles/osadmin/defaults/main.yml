@@ -1,0 +1,9 @@
+osadmin_flavors: []
+osadmin_images: []
+osadmin_projects: []
+osadmin_nameservers: []
+osadmin_host_aggregates: []
+osadmin_default_cidr: 192.168.230.0/24
+osadmin_default_auth_url: http://localhost:5000/v2.0 # only used when using the auth parameter with os_keypair and os_security_group
+osadmin_default_project_domain_id: ''
+osadmin_default_user_domain_id: ''

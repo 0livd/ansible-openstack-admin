@@ -1,0 +1,20 @@
+---
+- name: Network -- Create networks
+  os_network:
+    cloud: admin
+    state: present
+    name: '{{ item.name }}'
+    project: '{{ item.project }}'
+    wait: yes
+  with_items: '{{ osadmin_networks }}'
+
+- name: Network -- Create subnets
+  os_subnet:
+    cloud: admin
+    state: present
+    name: 'sub{{ item.name }}'
+    network_name: '{{ item.name }}'
+    cidr: '{{ item.cidr }}'
+    dns_nameservers: '{{ item.nameservers|default(omit) }}'
+    project: '{{ item.project }}'
+  with_items: '{{ osadmin_networks }}'

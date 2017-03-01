@@ -1,0 +1,14 @@
+---
+- name: Image -- Create Images
+  os_image:
+    cloud: '{{ item.cloud }}'
+    name: '{{ item.name }}'
+    disk_format: '{{ item.disk_format|default("raw") }}'
+    filename: '{{ item.filename }}'
+    container_format: '{{ item.container_format|default("bare") }}'
+    state: '{{ item.state|default("present") }}'
+    is_public: '{{ item.is_public|default("no") }}'
+    min_disk: '{{ item.min_disk|default("5") }}'
+    min_ram: '{{ item.min_ram|default("512") }}'
+    properties: '{{ item.properties|default(omit) }}'
+  with_items: '{{ osadmin_images }}'

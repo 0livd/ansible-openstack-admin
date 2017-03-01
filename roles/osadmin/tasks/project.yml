@@ -1,0 +1,211 @@
+---
+- name: Project -- Generate dict of passwords and store them in ./credentials
+  set_fact:
+    os_passwords: "{{ os_passwords|default({}) | combine( {item.name: lookup('password', './credentials/' + item.name + ' chars=ascii_letters')} ) }}"
+  with_items: '{{ osadmin_projects }}'
+  tags: always
+
+- name: Project -- Create projects
+  os_project:
+    cloud: admin
+    name: '{{ item.name }}'
+    state: '{{ item.state }}'
+    description: '{{ item.description|default(omit) }}'
+    domain_id: '{{ item.domain_id|default("default") }}'
+    availability_zone: '{{ item.availability_zone|default(omit) }}'
+    enabled: '{{ item.enabled|default(omit) }}'
+  with_items: '{{ osadmin_projects }}'
+  tags: project
+
+- name: Project -- Set quotas
+  include: roles/osadmin/tasks/quota.yml
+  vars:
+    osadmin_quotas: '{{ project_item.quotas }}'
+  when: project_item.quotas is defined
+  loop_control:
+    loop_var: project_item
+  with_items: '{{ osadmin_projects }}'
+  tags: quota
+
+- name: Fetch credentials from clouds.yaml  # to be removed in ansible 2.3
+  include_vars: "{{ item }}"
+  with_first_found:
+    - ~/.config/openstack/clouds.yaml
+    - /etc/openstack/clouds.yaml
+    - /etc/ansible/openstack.yaml
+  tags: always
+- name: Get user list to check if user already exists  # to be removed in ansible 2.3
+  raw: >
+    openstack --os-username={{ clouds.admin.auth.username }} 
+    --os-password={{ clouds.admin.auth.password }} 
+    --os-auth-url={{ clouds.admin.auth.auth_url }} 
+    --os-project-name={{ clouds.admin.auth.project_name }} 
+    --os-project-domain-id={{ clouds.admin.auth.project_domain_id }} 
+    --os-user-domain-id={{ clouds.admin.auth.user_domain_id }} 
+    --os-identity-api-version={{ clouds.admin.identity_api_version }}
+    user list
+  register: os_existing_users
+  tags: user
+  
+- name: Project -- Create users
+  include: roles/osadmin/tasks/user.yml
+  vars:
+    osadmin_users: '{{ project_item.users }}'
+  when: project_item.users is defined and project_item.name not in os_existing_users.stdout
+  loop_control:
+    loop_var: project_item
+  with_items: '{{ osadmin_projects }}'
+  tags: user
+
+- name: Project -- Create default user
+  include: roles/osadmin/tasks/user.yml
+  vars:
+    osadmin_users:
+      - name: '{{ project_item.name }}'
+        password: '{{ os_passwords[project_item.name] }}'
+        email: '{{ project_item.email|default(omit) }}'
+        state: present
+        # update_password: on_create ## ansible 2.3
+        default_project: '{{ project_item.name }}'
+  when: project_item.name not in os_existing_users.stdout
+  loop_control:
+    loop_var: project_item
+  with_items: '{{ osadmin_projects }}'
+  tags: user
+
+- name: Project -- Associate existing users to the project
+  include: roles/osadmin/tasks/user_role.yml
+  vars:
+    osadmin_users: '{{ project_item.more_users }}'
+    user_role_project: '{{ project_item.name }}'
+  when: project_item.more_users is defined
+  loop_control:
+    loop_var: project_item
+  with_items: '{{ osadmin_projects }}'
+  tags: user
+
+- name: Project -- Create keypairs
+  include: roles/osadmin/tasks/keypair.yml
+  vars:
+    osadmin_keypairs: '{{ project_item.keypairs }}'
+    osadmin_username: '{{ project_item.name }}'
+    osadmin_password: '{{ os_passwords[project_item.name] }}'
+    osadmin_project_name: '{{ project_item.name }}'
+    osadmin_auth_url: '{{ project_item.auth_url|default(osadmin_default_auth_url) }}'
+    osadmin_project_domain_id: '{{ project_item.project_domain_id|default(osadmin_default_project_domain_id) }}'
+    osadmin_user_domain_id: '{{ project_item.user_domain_id|default(osadmin_default_user_domain_id) }}'
+  when: project_item.keypairs is defined
+  loop_control:
+    loop_var: project_item
+  with_items: '{{ osadmin_projects }}'
+  tags: keypair
+
+- name: Project -- Create default keypair
+  include: roles/osadmin/tasks/keypair.yml
+  vars:
+    osadmin_keypairs:
+      - name: 'key-{{ project_item.name }}'
+        keypair_user_assos: '{{ project_item.keypair_user_assos|default(omit) }}'
+    osadmin_username: '{{ project_item.name }}'
+    osadmin_password: '{{ os_passwords[project_item.name] }}'
+    osadmin_project_name: '{{ project_item.name }}'
+    osadmin_auth_url: '{{ project_item.auth_url|default(osadmin_default_auth_url) }}'
+    osadmin_project_domain_id: '{{ project_item.project_domain_id|default(osadmin_default_project_domain_id) }}'
+    osadmin_user_domain_id: '{{ project_item.user_domain_id|default(osadmin_default_user_domain_id) }}'
+  when: project_item.autocreate_keypair is defined and project_item.autocreate_keypair
+  loop_control:
+    loop_var: project_item
+  with_items: '{{ osadmin_projects }}'
+  tags: keypair
+
+- name: Project -- Create networks
+  include: roles/osadmin/tasks/network.yml
+  vars:
+    osadmin_networks: '{{ project_item.networks }}'
+  when: project_item.networks is defined
+  loop_control:
+    loop_var: project_item
+  with_items: '{{ osadmin_projects }}'
+  tags: network
+
+- name: Project -- Create default network
+  include: roles/osadmin/tasks/network.yml
+  vars:
+    osadmin_networks:
+      - name: 'net-{{ project_item.name }}'
+        cidr: '{{ osadmin_default_cidr }}'
+        project: '{{ project_item.name }}'
+  when: project_item.autocreate_network is defined and project_item.autocreate_network
+  loop_control:
+    loop_var: project_item
+  with_items: '{{ osadmin_projects }}'
+  tags: network
+
+- name: Project -- Create routers
+  include: roles/osadmin/tasks/router.yml
+  vars:
+    osadmin_routers: '{{ project_item.routers }}'
+  when: project_item.routers is defined
+  loop_control:
+    loop_var: project_item
+  with_items: '{{ osadmin_projects }}'
+  tags: router
+
+- name: Project -- Create default router
+  include: roles/osadmin/tasks/router.yml
+  vars:
+    osadmin_routers:
+      - name: 'router-{{ project_item.name }}'
+        cloud: admin
+        project: '{{ project_item.name }}'
+        network: public
+        interfaces:
+          - 'subnet-{{ project_item.name }}'
+  when: project_item.autocreate_router is defined and project_item.autocreate_router
+  loop_control:
+    loop_var: project_item
+  with_items: '{{ osadmin_projects }}'
+  tags: router
+
+- name: Project -- Create security groups
+  include: roles/osadmin/tasks/security-group.yml
+  vars:
+    osadmin_security_groups: '{{ project_item.security_groups }}'
+    osadmin_username: '{{ project_item.name }}'
+    osadmin_password: '{{ os_passwords[project_item.name] }}'
+    osadmin_project_name: '{{ project_item.name }}'
+    osadmin_auth_url: '{{ project_item.auth_url|default(osadmin_default_auth_url) }}'
+    osadmin_project_domain_id: '{{ project_item.project_domain_id|default(osadmin_default_project_domain_id) }}'
+    osadmin_user_domain_id: '{{ project_item.user_domain_id|default(osadmin_default_user_domain_id) }}'
+  when: project_item.security_groups is defined
+  loop_control:
+    loop_var: project_item
+  with_items: '{{ osadmin_projects }}'
+  tags: security_group
+
+- name: Project -- Create default security groups
+  include: roles/osadmin/tasks/security-group.yml
+  vars:
+    osadmin_security_groups:
+      - name: Acces_distant(ssh+rdp)
+        description: "Permet l'acces distant aux machines windows et linux"
+        rules:
+          - protocol: tcp
+            port_range_min: 22
+            port_range_max: 22
+            remote_ip_prefix: 0.0.0.0/0
+          - protocol: tcp
+            port_range_min: 3389
+            port_range_max: 3389
+            remote_ip_prefix: 0.0.0.0/0
+    osadmin_username: '{{ project_item.name }}'
+    osadmin_password: '{{ os_passwords[project_item.name] }}'
+    osadmin_project_name: '{{ project_item.name }}'
+    osadmin_auth_url: '{{ project_item.auth_url|default(osadmin_default_auth_url) }}'
+    osadmin_project_domain_id: '{{ project_item.project_domain_id|default(osadmin_default_project_domain_id) }}'
+    osadmin_user_domain_id: '{{ project_item.user_domain_id|default(osadmin_default_user_domain_id) }}'
+  when: project_item.autocreate_sg is defined and project_item.autocreate_sg
+  loop_control:
+    loop_var: project_item
+  with_items: '{{ osadmin_projects }}'
+  tags: security_group

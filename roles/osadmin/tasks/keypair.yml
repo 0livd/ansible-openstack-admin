@@ -1,0 +1,39 @@
+---
+- name: Keypair -- Generate key pairs
+  os_keypair:
+    cloud: '{{ item.cloud|default(omit) }}'
+    auth:
+      username: '{{ osadmin_username|default(omit) }}'
+      password: '{{ osadmin_password|default(omit) }}'
+      project_name: '{{ osadmin_project_name|default(omit) }}'
+      auth_url: '{{ osadmin_auth_url|default(omit) }}'
+      user_domain_id: '{{ osadmin_user_domain_id|default(omit) }}'
+      project_domain_id: '{{ osadmin_project_domain_id|default(omit) }}'
+    public_key_file: '{{ item.public_key_file|default(omit) }}'
+    state: present
+    name: "{{ item.name }}"
+  with_items: '{{ osadmin_keypairs }}'
+  register: keypairs
+
+- name: Keypair -- Save private keys locally
+  shell: echo '{{ item.key.private_key }}' >./credentials/{{ item["item"].name }}.key
+  with_items: '{{ keypairs.results }}'
+  when: keypairs.changed and item.key.private_key is defined
+
+- name: Keypair -- Associate created keypair to other user
+  os_keypair:
+    cloud: '{{ item.0.keypair_user_assos|default(omit) }}'
+    auth:
+      username: '{{ osadmin_username|default(omit) }}'
+      password: '{{ osadmin_password|default(omit) }}'
+      project_name: '{{ osadmin_project_name|default(omit) }}'
+      auth_url: '{{ osadmin_auth_url|default(omit) }}'
+      user_domain_id: '{{ osadmin_user_domain_id|default(omit) }}'
+      project_domain_id: '{{ osadmin_project_domain_id|default(omit) }}'
+    public_key: '{{ item.1.public_key|default(omit) }}'
+    state: present
+    name: '{{ item.1.item.name }}'
+  when: item.0.keypair_user_assos is defined and keypairs.changed
+  with_nested:
+    - '{{ osadmin_keypairs }}'
+    - '{{ keypairs.results }}'

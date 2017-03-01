@@ -1,0 +1,10 @@
+---
+- name: Host aggregate -- Create Host aggregates
+  os_nova_host_aggregate:
+    cloud: admin
+    name: '{{ item.name }}'
+    availability_zone: '{{ item.availability_zone }}'
+    hosts: '{{ item.hosts }}'
+    metadata: '{{ item.metadata|default(omit) }}'
+    state: '{{ item.state|default("present") }}'
+  with_items: '{{ osadmin_host_aggregates }}'

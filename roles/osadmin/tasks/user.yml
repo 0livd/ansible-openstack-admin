@@ -1,0 +1,17 @@
+---
+- name: User -- Create users
+  os_user:
+    cloud: admin
+    name: '{{ item.name }}'
+    password: '{{ item.password }}'
+    # update_password: on_create  ## ansible 2.3
+    state: '{{ item.state|default("present") }}'
+    email: '{{ item.email|default(omit) }}'
+    default_project: '{{ item.default_project|default(omit) }}'
+    domain: '{{ item.domain_id|default("default") }}'
+    availability_zone: '{{ item.availability_zone|default(omit) }}'
+    enabled: '{{ item.enabled|default(omit) }}'
+  with_items:
+    - '{{ osadmin_users }}'
+
+- include: roles/osadmin/tasks/user_role.yml

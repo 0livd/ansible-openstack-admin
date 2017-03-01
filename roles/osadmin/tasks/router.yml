@@ -1,0 +1,11 @@
+---
+- name: Router -- Create routers
+  os_router:
+    cloud: '{{ item.cloud }}'
+    state: present
+    name: '{{ item.name }}'
+    project: '{{ item.project }}'
+    network: '{{ item.network }}'
+    interfaces: '{{ item.interfaces }}'
+  with_items: '{{ osadmin_routers }}'
+  ignore_errors: yes  # fails when the router already exists in ansible 2.2

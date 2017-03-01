@@ -1,0 +1,10 @@
+---
+- name: User -- Affect roles and projects to users
+  os_user_role:
+    cloud: admin
+    user: '{{ item.name }}'
+    project: '{{ item.default_project|default(user_role_project) }}'
+    role: '{{ item.role|default("_member_") }}'
+    state: '{{ item.state|default("present") }}'
+  when: item.default_project is defined or user_role_project is defined
+  with_items: '{{ osadmin_users }}'

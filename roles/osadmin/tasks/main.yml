@@ -1,0 +1,12 @@
+---
+- include: project.yml
+  tags: project
+
+- include: image.yml
+  tags: image
+
+- include: flavor.yml
+  tags: flavor
+
+# - include: host_aggregate.yml
+#   tags: host_aggregate

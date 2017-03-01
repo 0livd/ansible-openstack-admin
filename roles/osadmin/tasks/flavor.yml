@@ -1,0 +1,37 @@
+---
+- name: Flavor -- Create flavors
+  os_nova_flavor:
+    cloud: admin
+    state: present
+    name: '{{ item.name }}'
+    ram: '{{ item.ram }}'
+    vcpus: '{{ item.vcpus }}'
+    disk: '{{ item.disk }}'
+    ephemeral: '{{ item.ephemeral|default(0) }}'
+  with_items: '{{ osadmin_flavors }}'
+
+- name: Fetch credentials from clouds.yaml
+  include_vars: "{{ item }}"
+  with_first_found:
+    - ~/.config/openstack/clouds.yaml
+    - /etc/openstack/clouds.yaml
+    - /etc/ansible/openstack.yaml
+
+- name: Flavor -- Add metadatas
+  raw: >
+    openstack --os-username={{ clouds.admin.auth.username }} 
+    --os-password={{ clouds.admin.auth.password }} 
+    --os-auth-url={{ clouds.admin.auth.auth_url }} 
+    --os-project-name={{ clouds.admin.auth.project_name }} 
+    --os-project-domain-id={{ clouds.admin.auth.project_domain_id }} 
+    --os-user-domain-id={{ clouds.admin.auth.user_domain_id }} 
+    --os-identity-api-version={{ clouds.admin.identity_api_version }} 
+    flavor set {{ item.name }} 
+    --property quota:vif_outbound_average={{ item.outbound_average|default(1250) }} 
+    --property quota:vif_outbound_peak={{ item.outbound_peak|default(1250) }} 
+    --property quota:vif_outbound_burst={{ item.outbound_burst|default(1250) }} 
+    --property quota:vif_inbound_average={{ item.inbound_average|default(1250) }} 
+    --property quota:vif_inbound_peak={{ item.inbound_peak|default(1250) }} 
+    --property quota:vif_inbound_burst={{ item.inbound_burst|default(1250) }} 
+  when: item.limit_bandwidth is defined and item.limit_bandwidth
+  with_items: '{{ osadmin_flavors }}'
