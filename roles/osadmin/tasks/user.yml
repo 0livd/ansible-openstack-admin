@@ -4,7 +4,7 @@
     cloud: admin
     name: '{{ item.name }}'
     password: '{{ item.password }}'
-    # update_password: on_create  ## ansible 2.3
+    update_password: on_create
     state: '{{ item.state|default("present") }}'
     email: '{{ item.email|default(omit) }}'
     default_project: '{{ item.default_project|default(omit) }}'

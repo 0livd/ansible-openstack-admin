@@ -26,32 +26,12 @@
     loop_var: project_item
   with_items: '{{ osadmin_projects }}'
   tags: quota
-
-- name: Fetch credentials from clouds.yaml  # to be removed in ansible 2.3
-  include_vars: "{{ item }}"
-  with_first_found:
-    - ~/.config/openstack/clouds.yaml
-    - /etc/openstack/clouds.yaml
-    - /etc/ansible/openstack.yaml
-  tags: always
-- name: Get user list to check if user already exists  # to be removed in ansible 2.3
-  raw: >
-    openstack --os-username={{ clouds.admin.auth.username }} 
-    --os-password={{ clouds.admin.auth.password }} 
-    --os-auth-url={{ clouds.admin.auth.auth_url }} 
-    --os-project-name={{ clouds.admin.auth.project_name }} 
-    --os-project-domain-id={{ clouds.admin.auth.project_domain_id }} 
-    --os-user-domain-id={{ clouds.admin.auth.user_domain_id }} 
-    --os-identity-api-version={{ clouds.admin.identity_api_version }}
-    user list
-  register: os_existing_users
-  tags: user
   
 - name: Project -- Create users
   include: roles/osadmin/tasks/user.yml
   vars:
     osadmin_users: '{{ project_item.users }}'
-  when: project_item.users is defined and project_item.name not in os_existing_users.stdout
+  when: project_item.users is defined
   loop_control:
     loop_var: project_item
   with_items: '{{ osadmin_projects }}'
@@ -65,9 +45,8 @@
         password: '{{ os_passwords[project_item.name] }}'
         email: '{{ project_item.email|default(omit) }}'
         state: present
-        # update_password: on_create ## ansible 2.3
+        update_password: on_create
         default_project: '{{ project_item.name }}'
-  when: project_item.name not in os_existing_users.stdout
   loop_control:
     loop_var: project_item
   with_items: '{{ osadmin_projects }}'

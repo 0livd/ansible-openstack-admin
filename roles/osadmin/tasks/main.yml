@@ -8,5 +8,5 @@
 - include: flavor.yml
   tags: flavor
 
-# - include: host_aggregate.yml
-#   tags: host_aggregate
+- include: host_aggregate.yml
+  tags: host_aggregate
