@@ -5,6 +5,7 @@
     state: present
     name: '{{ item.name }}'
     project: '{{ item.project }}'
+    provider_segmentation_id: '{{ item.provider_segmentation_id|default(omit) }}'
     wait: yes
   with_items: '{{ osadmin_networks }}'
 

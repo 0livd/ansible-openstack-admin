@@ -45,6 +45,9 @@ Osadmin.yml Example:
         networks:
           - name: 'net'
             cidr: 192.168.5.0/24
+            provider_segmentation_id: 2069
+            project: client2
+          - name: 'net-only'  # Create a network without any associated subnet
             project: client2
         routers:
           - name: router
