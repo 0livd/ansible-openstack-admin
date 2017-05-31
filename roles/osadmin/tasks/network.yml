@@ -18,4 +18,6 @@
     cidr: '{{ item.cidr }}'
     dns_nameservers: '{{ item.nameservers|default(omit) }}'
     project: '{{ item.project }}'
+    wait: yes
+  when: item.cidr is defined
   with_items: '{{ osadmin_networks }}'
